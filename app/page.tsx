@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import supabase from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
 import SignUpForm from '@/components/SignUpForm';
 
 export default function Home() {

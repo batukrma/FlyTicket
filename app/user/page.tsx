@@ -1,261 +1,321 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import supabase from '@/lib/supabaseClient';
-import React from 'react';
+import { supabase } from '@/lib/supabase';
+import Navbar from '@/components/userComponents/Navbar';
+import FlightSearch from '@/components/userComponents/FlightSearch';
+import FlightCard from '@/components/userComponents/FlightCard';
+import BookingForm from '@/components/userComponents/BookingForm';
+import TicketCard from '@/components/userComponents/TicketCard';
 
-export default function User() {
+export default function UserPage() {
     const router = useRouter();
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const [cities, setCities] = useState<any[]>([]);
     const [flights, setFlights] = useState<any[]>([]);
-    const [fromCity, setFromCity] = useState('');
-    const [toCity, setToCity] = useState('');
-    const [date, setDate] = useState('');
+    const [myTickets, setMyTickets] = useState<any[]>([]);
+    const [showMyTickets, setShowMyTickets] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [searching, setSearching] = useState(false);
-    const [hasSearched, setHasSearched] = useState(false);
-    const [bookingFlightId, setBookingFlightId] = useState<string | null>(null);
-    const [bookingForm, setBookingForm] = useState({
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [selectedFlight, setSelectedFlight] = useState<any>(null);
+    const [cancellingTicket, setCancellingTicket] = useState(false);
+
+    const [searchParams, setSearchParams] = useState({
+        from_city: '',
+        to_city: '',
+        departure_date: ''
+    });
+
+    const [form, setForm] = useState({
         passenger_name: '',
         passenger_surname: '',
         passenger_email: '',
         seat_number: ''
     });
-    const [bookingLoading, setBookingLoading] = useState(false);
-    const [bookingError, setBookingError] = useState<string | null>(null);
-    const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                router.push('/');
+                router.push('/login');
+            } else {
+                setUserEmail(user.email || null);
+                fetchMyTickets(user.email || '');
             }
         };
         checkUser();
-    }, [router]);
-
-    useEffect(() => {
-        // Fetch cities on mount
-        const fetchCities = async () => {
-            const res = await fetch('/api/cities');
-            const data = await res.json();
-            console.log('Cities data:', data);
-            setCities(data);
-        };
         fetchCities();
+        fetchFlights();
     }, []);
+
+    const fetchCities = async () => {
+        try {
+            const response = await fetch('/api/cities');
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            setCities(data);
+        } catch (error) {
+            console.error('Error fetching cities:', error);
+            setError('Failed to load cities');
+        }
+    };
+
+    const fetchFlights = async () => {
+        try {
+            const response = await fetch('/api/flights');
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            setFlights(data);
+        } catch (error) {
+            console.error('Error fetching flights:', error);
+            setError('Failed to load flights');
+        }
+    };
+
+    const fetchMyTickets = async (email: string) => {
+        try {
+            const response = await fetch(`/api/tickets?email=${email}`);
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            setMyTickets(data);
+        } catch (error) {
+            console.error('Error fetching tickets:', error);
+            setError('Failed to load tickets');
+        }
+    };
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSearching(true);
-        setHasSearched(true);
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
 
-        const res = await fetch(`/api/flights?from_city=${fromCity}&to_city=${toCity}&date=${date}`);
-        const data = await res.json();
+        try {
+            const queryParams = new URLSearchParams();
+            if (searchParams.from_city) queryParams.append('from_city', searchParams.from_city);
+            if (searchParams.to_city) queryParams.append('to_city', searchParams.to_city);
+            if (searchParams.departure_date) queryParams.append('departure_date', searchParams.departure_date);
 
-        console.log('All flights:', data);
+            const response = await fetch(`/api/flights?${queryParams.toString()}`);
+            const data = await response.json();
 
-        setFlights(data);
-        setSearching(false);
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            setFlights(data);
+            setSuccess('Flights loaded successfully');
+        } catch (error: any) {
+            console.error('Error searching flights:', error);
+            setError(error.message || 'Failed to search flights');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleBook = (flightId: string) => {
-        setBookingFlightId(flightId);
-        setBookingForm({ passenger_name: '', passenger_surname: '', passenger_email: '', seat_number: '' });
-        setBookingError(null);
-        setBookingSuccess(null);
-    };
-
-    const handleBookingFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setBookingForm({ ...bookingForm, [e.target.name]: e.target.value });
-    };
-
-    const handleBookingSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setBookingLoading(true);
-        setBookingError(null);
-        setBookingSuccess(null);
-        try {
-            const res = await fetch('/api/tickets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...bookingForm, flight_id: bookingFlightId })
-            });
-            const data = await res.json();
-            if (data.error) {
-                setBookingError(data.error);
-            } else {
-                setBookingSuccess('Booking successful! Your ticket ID: ' + data.ticket_id);
-                setBookingForm({ passenger_name: '', passenger_surname: '', passenger_email: '', seat_number: '' });
-                setBookingFlightId(null);
-            }
-        } catch (err: any) {
-            setBookingError('An error occurred while booking.');
+        const flight = flights.find(f => f.flight_id === flightId);
+        if (flight) {
+            setSelectedFlight(flight);
+            setForm(prev => ({
+                ...prev,
+                passenger_email: userEmail || ''
+            }));
         }
-        setBookingLoading(false);
     };
 
-    // Helper to get city name by id
-    const getCityName = (id: string) => {
-        const city = cities.find((c) => (c as any).city_id === id);
-        return city ? (city as any).city_name : id;
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const response = await fetch('/api/tickets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...form,
+                    flight_id: selectedFlight.flight_id
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            setSuccess('Ticket booked successfully!');
+            setSelectedFlight(null);
+            setForm({
+                passenger_name: '',
+                passenger_surname: '',
+                passenger_email: '',
+                seat_number: ''
+            });
+
+            // Refresh flights and tickets
+            fetchFlights();
+            if (userEmail) {
+                fetchMyTickets(userEmail);
+            }
+        } catch (error: any) {
+            console.error('Error booking ticket:', error);
+            setError(error.message || 'Failed to book ticket');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancelTicket = async (ticketId: string) => {
+        if (!confirm('Are you sure you want to cancel this ticket?')) {
+            return;
+        }
+
+        setCancellingTicket(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            setSuccess('Ticket cancelled successfully!');
+            setMyTickets(prev => prev.filter(ticket => ticket.ticket_id !== ticketId));
+
+            // Refresh available flights
+            fetchFlights();
+        } catch (error: any) {
+            console.error('Error cancelling ticket:', error);
+            setError(error.message || 'Failed to cancel ticket');
+        } finally {
+            setCancellingTicket(false);
+        }
+    };
+
+    const getCityName = (cityId: string) => {
+        const city = cities.find(c => c.city_id === cityId);
+        return city ? city.city_name : cityId;
     };
 
     return (
-        <>
-            <div className="min-h-screen bg-gray-900 text-gray-100">
-                <nav className="bg-gray-800 shadow">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex justify-between h-16">
-                            <div className="flex items-center">
-                                <h1 className="text-xl font-semibold text-white">FlyTicket</h1>
-                            </div>
-                            <div className="flex items-center">
-                                <button
-                                    onClick={async () => { await supabase.auth.signOut(); router.push('/'); }}
-                                    className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+        <div className="min-h-screen bg-gray-900 text-white">
+            <Navbar userEmail={userEmail} />
 
-                <main className="max-w-3xl mx-auto py-10 px-4">
-                    <h2 className="text-3xl font-bold text-white mb-8">Search Flights</h2>
-                    <form className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10" onSubmit={handleSearch}>
-                        <select
-                            className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={fromCity}
-                            onChange={e => setFromCity(e.target.value)}
-                            required
-                        >
-                            <option value="">From</option>
-                            {cities.map((city: any) => (
-                                <option key={city.city_id} value={city.city_id}>{city.city_name}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={toCity}
-                            onChange={e => setToCity(e.target.value)}
-                            required
-                        >
-                            <option value="">To</option>
-                            {cities.map((city: any) => (
-                                <option key={city.city_id} value={city.city_id}>{city.city_name}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="date"
-                            className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={date}
-                            onChange={e => setDate(e.target.value)}
-                            required
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold">
+                        {showMyTickets ? 'My Tickets' : 'Search Flights'}
+                    </h1>
+                    <button
+                        onClick={() => {
+                            setShowMyTickets(!showMyTickets);
+                            if (!showMyTickets && userEmail) {
+                                fetchMyTickets(userEmail);
+                            }
+                        }}
+                        className="bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors duration-200 cursor-pointer shadow-md hover:shadow-lg"
+                    >
+                        {showMyTickets ? 'Search Flights' : 'My Tickets'}
+                    </button>
+                </div>
+
+                {!showMyTickets ? (
+                    <>
+                        <FlightSearch
+                            cities={cities}
+                            searchParams={searchParams}
+                            onSearchParamsChange={(e) => setSearchParams(prev => ({
+                                ...prev,
+                                [e.target.name]: e.target.value
+                            }))}
+                            onSearch={handleSearch}
                         />
-                        <button
-                            type="submit"
-                            className="bg-blue-600 text-white rounded-md px-4 py-2 font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            disabled={searching}
-                        >
-                            {searching ? 'Searching...' : 'Search'}
-                        </button>
-                    </form>
 
-                    <h3 className="text-xl font-semibold text-white mb-4">Available Flights</h3>
-                    {!hasSearched ? (
-                        <p className="text-gray-400">Please search for flights above.</p>
-                    ) : loading ? (
-                        <p>Loading flights...</p>
-                    ) : flights.length === 0 ? (
-                        <div className="text-red-400 font-semibold">No flights found between the selected cities and date.</div>
-                    ) : (
-                        <div className="space-y-4">
-                            {flights.map((flight: any) => (
-                                <div key={flight.flight_id} className="border border-gray-700 bg-gray-800 rounded-lg p-4 mb-4">
-                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                                        <div>
-                                            <div className="font-semibold text-lg text-white">{getCityName(flight.from_city)} → {getCityName(flight.to_city)}</div>
-                                            <div className="text-gray-300 text-sm">Departure: {new Date(flight.departure_time).toLocaleString()}</div>
-                                            <div className="text-gray-300 text-sm">Arrival: {new Date(flight.arrival_time).toLocaleString()}</div>
-                                            <div className="text-gray-300 text-sm">Price: {flight.price}₺</div>
-                                            <div className="text-gray-300 text-sm">Seats Available: {flight.seats_available}</div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleBook(flight.flight_id)}
-                                            className="mt-4 md:mt-0 bg-blue-600 text-white rounded-md px-4 py-2 font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                        >
-                                            Book
-                                        </button>
-                                    </div>
-                                    {bookingFlightId === flight.flight_id && (
-                                        <form className="mt-4 space-y-2 bg-gray-900 p-4 rounded-lg" onSubmit={handleBookingSubmit}>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    name="passenger_name"
-                                                    placeholder="Name"
-                                                    required
-                                                    className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    value={bookingForm.passenger_name}
-                                                    onChange={handleBookingFormChange}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    name="passenger_surname"
-                                                    placeholder="Surname"
-                                                    required
-                                                    className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    value={bookingForm.passenger_surname}
-                                                    onChange={handleBookingFormChange}
-                                                />
-                                            </div>
-                                            <input
-                                                type="email"
-                                                name="passenger_email"
-                                                placeholder="Email"
-                                                required
-                                                className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                value={bookingForm.passenger_email}
-                                                onChange={handleBookingFormChange}
-                                            />
-                                            <input
-                                                type="text"
-                                                name="seat_number"
-                                                placeholder="Seat Number (optional)"
-                                                className="border border-gray-700 bg-gray-800 text-gray-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                value={bookingForm.seat_number}
-                                                onChange={handleBookingFormChange}
-                                            />
-                                            {bookingError && <div className="text-red-400 text-sm">{bookingError}</div>}
-                                            {bookingSuccess && <div className="text-green-400 text-sm">{bookingSuccess}</div>}
-                                            <div className="flex gap-2">
-                                                <button
-                                                    type="submit"
-                                                    className="bg-blue-600 text-white rounded-md px-4 py-2 font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                                    disabled={bookingLoading}
-                                                >
-                                                    {bookingLoading ? 'Booking...' : 'Confirm Booking'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="bg-gray-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                                    onClick={() => setBookingFlightId(null)}
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </form>
-                                    )}
-                                </div>
+                        {error && (
+                            <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-xl text-red-200">
+                                {error}
+                            </div>
+                        )}
+
+                        {success && (
+                            <div className="mt-4 p-4 bg-green-900/50 border border-green-700 rounded-xl text-green-200">
+                                {success}
+                            </div>
+                        )}
+
+                        <div className="mt-8 space-y-4">
+                            {flights.map(flight => (
+                                <FlightCard
+                                    key={flight.flight_id}
+                                    flight={flight}
+                                    cities={cities}
+                                    onBook={handleBook}
+                                    getCityName={getCityName}
+                                />
                             ))}
                         </div>
-                    )}
-                </main>
+
+                        {selectedFlight && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                                    <h2 className="text-2xl font-bold mb-4">Book Flight</h2>
+                                    <div className="text-gray-300 mb-6 space-y-2">
+                                        <p>From: {getCityName(selectedFlight.from_city)}</p>
+                                        <p>To: {getCityName(selectedFlight.to_city)}</p>
+                                        <p>Departure: {new Date(selectedFlight.departure_time).toLocaleString()}</p>
+                                        <p>Arrival: {new Date(selectedFlight.arrival_time).toLocaleString()}</p>
+                                        <p>Price: {selectedFlight.price}₺</p>
+                                        <p>Available Seats: {selectedFlight.Available_seats}</p>
+                                    </div>
+                                    <BookingForm
+                                        form={form}
+                                        loading={loading}
+                                        error={error}
+                                        success={success}
+                                        onChange={(e) => setForm(prev => ({
+                                            ...prev,
+                                            [e.target.name]: e.target.value
+                                        }))}
+                                        onSubmit={handleSubmit}
+                                        onCancel={() => setSelectedFlight(null)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="space-y-4">
+                        {myTickets.map(ticket => (
+                            <TicketCard
+                                key={ticket.ticket_id}
+                                ticket={ticket}
+                                getCityName={getCityName}
+                                onCancel={handleCancelTicket}
+                                isCancelling={cancellingTicket}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
-        </>
+        </div>
     );
 }
