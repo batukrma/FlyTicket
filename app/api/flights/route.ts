@@ -46,3 +46,30 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Internal Server Error', message: e.message }, { status: 500 });
     }
 }
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { from_city, to_city, departure_time, arrival_time, price, seats_total } = body;
+
+        // seats_available should be equal to seats_total for new flights
+        const { data, error } = await supabase
+            .from('flight')
+            .insert([{
+                from_city,
+                to_city,
+                departure_time,
+                arrival_time,
+                price: parseFloat(price),
+                seats_total: parseInt(seats_total),
+                seats_available: parseInt(seats_total) // Set equal to seats_total
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json(data);
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

@@ -284,7 +284,7 @@ export default function UserPage() {
                                         <p>Departure: {new Date(selectedFlight.departure_time).toLocaleString()}</p>
                                         <p>Arrival: {new Date(selectedFlight.arrival_time).toLocaleString()}</p>
                                         <p>Price: {selectedFlight.price}₺</p>
-                                        <p>Available Seats: {selectedFlight.Available_seats}</p>
+                                        <p>Available Seats: {selectedFlight.available_seats}</p>
                                     </div>
                                     <BookingForm
                                         form={form}
