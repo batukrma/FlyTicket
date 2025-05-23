@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 export async function PUT(
-    request: Request,
-    { params }: { params: { flight_id: string } }
+    request: NextRequest,
+    context: { params: { flight_id: string } }
 ) {
     try {
         const body = await request.json();
@@ -20,7 +20,7 @@ export async function PUT(
                 seats_total: parseInt(seats_total),
                 seats_available: parseInt(seats_available)
             })
-            .eq('flight_id', params.flight_id)
+            .eq('flight_id', context.params.flight_id)
             .select()
             .single();
 
