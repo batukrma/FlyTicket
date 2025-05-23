@@ -1,9 +1,15 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+type RouteContext = {
+    params: {
+        flight_id: string;
+    };
+};
+
 export async function PUT(
     request: NextRequest,
-    context: { params: { flight_id: string } }
+    { params }: RouteContext
 ) {
     try {
         const body = await request.json();
@@ -20,7 +26,7 @@ export async function PUT(
                 seats_total: parseInt(seats_total),
                 seats_available: parseInt(seats_available)
             })
-            .eq('flight_id', context.params.flight_id)
+            .eq('flight_id', params.flight_id)
             .select()
             .single();
 
@@ -32,8 +38,8 @@ export async function PUT(
 }
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { flight_id: string } }
+    request: NextRequest,
+    { params }: RouteContext
 ) {
     try {
         const { error } = await supabase
