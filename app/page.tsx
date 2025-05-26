@@ -69,7 +69,7 @@ export default function Home() {
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50">
         <div className="w-full max-w-md p-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900">
+            <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 to-blue-700 bg-clip-text text-transparent tracking-tight drop-shadow-sm select-none">
               FlyTicket
             </h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -96,7 +96,7 @@ export default function Home() {
                       name="email"
                       type="email"
                       required
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-semibold text-gray-900"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -109,7 +109,7 @@ export default function Home() {
                       name="password"
                       type="password"
                       required
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-semibold text-gray-900"
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

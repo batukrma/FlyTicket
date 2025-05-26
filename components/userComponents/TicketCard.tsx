@@ -49,7 +49,7 @@ export default function TicketCard({ ticket, getCityName, onCancel, isCancelling
                     <button
                         onClick={() => onCancel(ticket.ticket_id)}
                         disabled={isCancelling}
-                        className="bg-red-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors duration-200 cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl px-6 py-3 font-semibold shadow-lg hover:from-red-600 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isCancelling ? 'Cancelling...' : 'Cancel Ticket'}
                     </button>

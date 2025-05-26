@@ -66,16 +66,19 @@ export default function BookingForm({
             <div className="flex gap-2">
                 <button
                     type="submit"
-                    className="bg-blue-600 text-white rounded-md px-4 py-2 font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl px-4 py-2 font-semibold shadow-lg hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     disabled={loading}
                 >
                     {loading ? 'Booking...' : 'Confirm Booking'}
                 </button>
                 <button
                     type="button"
-                    className="bg-gray-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="flex items-center gap-1 border border-gray-500 text-gray-300 rounded-lg px-3 py-1.5 font-medium hover:bg-gray-800/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 cursor-pointer text-sm"
                     onClick={onCancel}
                 >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Cancel
                 </button>
             </div>
